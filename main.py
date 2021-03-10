@@ -1,5 +1,7 @@
 import pygame, sys
 
+#https://www.youtube.com/watch?v=l-GUfEJcTH4
+
 clock = pygame.time.Clock()
 from pygame.locals import *
 pygame.init()
@@ -10,23 +12,33 @@ WINDOW_SIZE = (600, 400)
 screen = pygame.display.set_mode(WINDOW_SIZE, 0, 32)
 display = pygame.Surface((300, 200))
 
+deep_image = pygame.image.load('deep.png')
 player_image = pygame.image.load('player.png')
 grass_image = pygame.image.load('grass.png')
 dirt_image = pygame.image.load('dirt.png')
+tall_grass_image = pygame.image.load('tall_grass.png')
+is_left, is_right = False, False
+player_y_momentum = 0
+air_timer = 0
+jump_speed = 3
+player_speed = 4
 
-game_map = [['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['2','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0'],
-            ['1','2','2','2','2','2','2','2','2','2','2','2','2','2','2','2','2','2','2','2','2','2'],
-            ['1','1','1','1','1','1','1','1','1','1','1','1','1','1','1','1','1','1','1','1','1','1']]
+true_scroll = [0, 0]
+
+player_rect = Rect(50, 50, player_image.get_width(), player_image.get_height())
+background_objects = [[0.25, [120, 10, 70, 400]], [0.25, [280, 30, 40, 400]], [0.5, [30, 40, 40, 400]], [0.5, [130, 90, 100, 400]], [0.5, [300, 80, 120, 400]]]
+
+tilesize = 16
+
+def load_map(path):
+    f = open(path + '.txt', 'r')
+    data = f.read()
+    f.close()
+    data = data.split('\n')
+    game_map = []
+    for row in data:
+        game_map.append(list(row))
+    return game_map
 
 def collision_test(rect, tiles):
     hit_list = []
@@ -57,23 +69,31 @@ def move(rect, movement, tiles):
             collision_types['top'] = True
     return rect, collision_types
 
+game_map = load_map('map')
+
 RED = [255, 0, 0]
 WHITE = [255, 255, 255, 255]
 BLACK = [0, 0, 0]
 
-is_left, is_right = False, False
-player_y_momentum = 0
-air_timer = 0
-jump_speed = 3
-player_speed = 4
-
-player_rect = Rect(50, 50, player_image.get_width(), player_image.get_height())
-test_rect = Rect(100, 100, 100, 50)
-tilesize = 16
 
 system_on = True
 while system_on:
     display.fill(BLACK)
+
+    true_scroll[0] += (player_rect.x - true_scroll[0] - (display.get_width()/2 + 2))/20
+    true_scroll[1] += (player_rect.y - true_scroll[1] - (display.get_height()/2 + 6))/20
+    scroll = true_scroll.copy()
+    scroll[0] = int(scroll[0])
+    scroll[1] = int(scroll[1])
+
+    pygame.draw.rect(display, (7, 80, 75), pygame.Rect(0, 120, 300, 80))
+    for background_object in background_objects:
+        obj_rect = pygame.Rect(background_object[1][0] - scroll[0] * background_object[0], background_object[1][1] - scroll[1] * background_object[0], background_object[1][2], background_object[1][3])
+        if background_object[0] == 0.5:
+            pygame.draw.rect(display, (14, 222, 150), obj_rect)
+        else:
+            pygame.draw.rect(display, (9, 91, 85), obj_rect)
+
 
     # draws map
     tile_rects = []
@@ -82,9 +102,13 @@ while system_on:
         x = 0
         for tile in row:
             if tile == "1":
-                display.blit(dirt_image, (x * tilesize, y * tilesize))
+                display.blit(dirt_image, (x * tilesize - scroll[0], y * tilesize - scroll[1]))
             if tile == "2":
-                display.blit(grass_image, (x * tilesize, y * tilesize))
+                display.blit(grass_image, (x * tilesize - scroll[0], y * tilesize - scroll[1]))
+            if tile == '3':
+                display.blit(deep_image, (x * tilesize - scroll[0], y * tilesize - scroll[1]))
+            if tile == 'G':
+                display.blit(tall_grass_image, (x * tilesize - scroll[0], y * tilesize - scroll[1]))
             if tile != "0":
                 tile_rects.append(pygame.Rect(x * tilesize, y * tilesize, tilesize, tilesize))
             x += 1
@@ -109,7 +133,7 @@ while system_on:
     else:
         air_timer += 1
 
-    display.blit(player_image, (player_rect.x, player_rect.y))
+    display.blit(player_image, (player_rect.x - scroll[0], player_rect.y - scroll[1]))
 
     # events
     for event in pygame.event.get():
