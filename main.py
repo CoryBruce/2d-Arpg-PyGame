@@ -13,7 +13,7 @@ screen = pygame.display.set_mode(WINDOW_SIZE, 0, 32)
 display = pygame.Surface((300, 200))
 
 deep_image = pygame.image.load('deep.png')
-player_image = pygame.image.load('player.png')
+player_image = pygame.image.load('player_stand.png')
 grass_image = pygame.image.load('grass.png')
 dirt_image = pygame.image.load('dirt.png')
 tall_grass_image = pygame.image.load('tall_grass.png')
@@ -67,6 +67,7 @@ def move(rect, movement, tiles):
         if movement[1] < 0:
             rect.top = tile.bottom
             collision_types['top'] = True
+            print(hit_list)
     return rect, collision_types
 
 game_map = load_map('map')
@@ -103,12 +104,16 @@ while system_on:
         for tile in row:
             if tile == "1":
                 display.blit(dirt_image, (x * tilesize - scroll[0], y * tilesize - scroll[1]))
+                #tile_type.append('ground')
             if tile == "2":
                 display.blit(grass_image, (x * tilesize - scroll[0], y * tilesize - scroll[1]))
+                #tile_type.append('ground')
             if tile == '3':
                 display.blit(deep_image, (x * tilesize - scroll[0], y * tilesize - scroll[1]))
+                #tile_type.append('ground')
             if tile == 'G':
                 display.blit(tall_grass_image, (x * tilesize - scroll[0], y * tilesize - scroll[1]))
+                #tile_type.append('grass')
             if tile != "0":
                 tile_rects.append(pygame.Rect(x * tilesize, y * tilesize, tilesize, tilesize))
             x += 1
